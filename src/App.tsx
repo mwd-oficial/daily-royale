@@ -5,6 +5,7 @@ import {
     NORMAL_COLORS,
     NEON_COLORS,
     LANDSCAPES,
+    ARENAS,
     BALLOON_COLORS
 } from './constants';
 
@@ -39,6 +40,23 @@ const App: React.FC = () => {
     const [balloons, setBalloons] = useState<Balloon[]>([]);
     const [now, setNow] = useState<number>(Date.now());
     const [showNotification, setShowNotification] = useState(false);
+    const [notificationText, setNotificationText] = useState<string>(() => {
+        return localStorage.getItem('notificationText') || 'Nova arena alcançada!';
+    });
+    const [diasSeguidosText, setDiasSeguidosText] = useState<string>(() => {
+        return localStorage.getItem('diasSeguidosText') || 'dias seguidos';
+    });
+    const [isTrofeu, setIsTrofeu] = useState<boolean>(() => {
+        const saved = localStorage.getItem('isTrofeu');
+        return saved === 'true'; // convert string para boolean
+    });
+    const [isArena, setIsArena] = useState<boolean>(() => {
+        const saved = localStorage.getItem('isArena');
+        return saved === 'true'; // convert string para boolean
+    });
+
+
+
 
     // Update clock every minute
     useEffect(() => {
@@ -63,6 +81,23 @@ const App: React.FC = () => {
         localStorage.setItem('current_gradient', gradient);
     }, [gradient]);
 
+    useEffect(() => {
+        localStorage.setItem('notificationText', notificationText);
+    }, [notificationText]);
+
+    useEffect(() => {
+        localStorage.setItem('diasSeguidosText', diasSeguidosText);
+    }, [diasSeguidosText]);
+
+    useEffect(() => {
+        localStorage.setItem('isTrofeu', isTrofeu.toString());
+    }, [isTrofeu]);
+
+    useEffect(() => {
+        localStorage.setItem('isArena', isArena.toString());
+    }, [isArena]);
+
+
     // Determine current phase
     const phase = useMemo(() => {
         if (count <= 6) return 'monotone';
@@ -84,6 +119,14 @@ const App: React.FC = () => {
         return {};
     }, [phase, count]);
 
+    const arenaStyle = useMemo(() => {
+        if (phase === 'landscape') {
+            const imgIndex = Math.floor((count - 21) / 7) % ARENAS.length;
+            return ARENAS[imgIndex]
+        }
+        return '';
+    }, [phase, count]);
+    /*
     const isEnabled = useMemo(() => {
         if (!lastClickTimestamp) return true;
 
@@ -94,7 +137,8 @@ const App: React.FC = () => {
 
         return now >= targetDate.getTime();
     }, [lastClickTimestamp, now]);
-    //const isEnabled = true;
+    */
+    const isEnabled = true;
 
 
     const getCenteredRandom = () => {
@@ -119,6 +163,10 @@ const App: React.FC = () => {
 
         // Notifications for landscape change
         if (newCount >= 21 && (newCount - 21) % 7 === 0) {
+            if (newCount >= 280) setNotificationText('Nova liga alcançada!');
+            setDiasSeguidosText(`troféus`);
+            setIsTrofeu(true);
+            setIsArena(true)
             setShowNotification(true);
             setTimeout(() => setShowNotification(false), 4000);
         }
@@ -205,6 +253,10 @@ const App: React.FC = () => {
         setCount(0);
         setLastClickTimestamp(null);
         setMessage("Começando do zero. Você consegue!");
+        setNotificationText('Nova arena alcançada!');
+        setDiasSeguidosText(`dias seguidos`);
+        setIsTrofeu(false);
+        setIsArena(false);
         setGradient(MONOTONE_COLORS[0]);
     };
 
@@ -212,7 +264,7 @@ const App: React.FC = () => {
         if (isEnabled || !lastClickTimestamp) return null;
         return `Disponível amanhã às 20h`;
     };
-        
+
     // Tirar isso depois 
     /*
     const requestFullscreen = () => {
@@ -237,8 +289,8 @@ const App: React.FC = () => {
     return (
         <div
             style={backgroundStyle}
-            className={`min-h-screen w-full flex flex-col items-center justify-between p-6 transition-all duration-1000 
-                ${phase !== 'landscape' ? `bg-gradient-to-br ${gradient}` : 'bg-slate-900'} 
+            className={`min-h-screen w-full flex flex-col items-center justify-between transition-all duration-1000 
+                ${phase !== 'landscape' ? `bg-gradient-to-br ${gradient}` : ''}
                 ${phase === 'monotone' ? 'brightness-90' : 'grayscale-0'}`}
         >
             {/* Tirar isso depois */}
@@ -261,33 +313,46 @@ const App: React.FC = () => {
             {showNotification && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-in fade-in duration-500">
                     <div className="bg-white text-slate-900 px-4 py-2 rounded-lg shadow-md scale-100 animate-bounce max-w-xs w-11/12">
-                        <h2 className="text-xl sm:text-2xl font-bungee text-center">Nova paisagem alcançada!</h2>
+                        <h2 className="text-xl sm:text-2xl font-bungee text-center">{notificationText}</h2>
                     </div>
                 </div>
             )}
 
-            <header className="mt-8 text-center animate-pulse">
+            <header className="mt-[15px] mb-[15px] text-center animate-pulse">
                 <h1 className="text-4xl font-black font-bungee drop-shadow-lg tracking-tighter">
                     {phase === 'monotone' ? 'NUNCA DESISTA!' : phase === 'normal' ? 'FOCO TOTAL!' : 'VIBRAÇÃO MÁXIMA!'}
                 </h1>
             </header>
 
-            <main className="flex flex-col items-center justify-center flex-1 w-full space-y-12">
+            <main className={`flex flex-col items-center justify-start flex-1 w-full ${!isArena ? 'space-y-10' : 'space-y-2'}`}>
                 <div className="relative group">
                     <div className={`absolute -inset-4 opacity-20 blur-xl transition rounded-full`}></div>
                     <div className={`relative flex flex-col items-center justify-center backdrop-blur-md rounded-3xl p-12 border shadow-2xl min-w-[300px] transition-colors duration-1000
                         ${phase === 'monotone' ? 'bg-black/40 border-white/10' : 'bg-white/10 border-white/20'}`}>
+                        {isTrofeu && (
+                            <img
+                                src="/assets/trofeu.png"
+                                alt="Troféu"
+                                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] opacity-50 pointer-events-none select-none"
+                            />
+                        )}
                         <span className={`text-9xl font-black font-bungee tabular-nums drop-shadow-2xl transition-all duration-1000 ${phase === 'neon' ? 'text-transparent bg-clip-text bg-gradient-to-t from-cyan-400 to-white' : 'text-white'}`}>
                             {count}
                         </span>
-                        <p className="mt-4 text-xl font-bold uppercase tracking-widest text-white/80">
-                            dias seguidos
+                        <p className="mt-4 text-xl font-bold uppercase tracking-widest text-white z-10">
+                            {diasSeguidosText}
                         </p>
                     </div>
                 </div>
-
-                <div className="max-w-md w-full px-4 text-center h-24 flex flex-col items-center justify-center space-y-2">
-                    <p className={`text-2xl font-bold leading-tight drop-shadow-md transition-all duration-500 ${phase === 'monotone' ? 'opacity-50' : 'opacity-100'}`}>
+                {isArena && (
+                    <img
+                        src={arenaStyle}
+                        alt="Arena"
+                        className="mt-0 mb-0 w-[200px] pointer-events-none select-none"
+                    />
+                )}
+                <div className="max-w-md w-full px-4 text-center flex flex-col items-center justify-center space-y-2">
+                    <p className={`text-2xl font-bold leading-tight drop-shadow-md transition-all duration-500 mb-5 ${phase === 'monotone' ? 'opacity-50' : 'opacity-100'}`}>
                         {message}
                     </p>
                     {!isEnabled && (

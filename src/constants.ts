@@ -50,12 +50,15 @@ export const NEON_COLORS = [
 
 
 export const LANDSCAPES = [
-    'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80&w=1920',
-    'https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&q=80&w=1920',
-    'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&q=80&w=1920',
-    'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&q=80&w=1920',
-    'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&q=80&w=1920',
-    'https://images.unsplash.com/photo-1434725039720-abb26e22ebe8?auto=format&fit=crop&q=80&w=1920'
+    '/assets/bg-arena0.jpeg',
+    '/assets/bg-arena1.png',
+    '/assets/bg-arena2.png'
+];
+
+export const ARENAS = [
+    '/assets/arena0.png',
+    '/assets/arena1.webp',
+    '/assets/arena2.jpg'
 ];
 
 export const BALLOON_COLORS = [
