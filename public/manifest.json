@@ -2,7 +2,7 @@
   "name": "Daily Royale",
   "short_name": "DailyRoyale",
   "description": "",
-  "start_url": "/index.html",
+  "start_url": ".",
   "scope": "/",
   "display": "fullscreen",
   "background_color": "#000000",
