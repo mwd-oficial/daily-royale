@@ -126,7 +126,7 @@ const App: React.FC = () => {
         }
         return '';
     }, [phase, count]);
-    /*
+    
     const isEnabled = useMemo(() => {
         if (!lastClickTimestamp) return true;
 
@@ -137,8 +137,8 @@ const App: React.FC = () => {
 
         return now >= targetDate.getTime();
     }, [lastClickTimestamp, now]);
-    */
-    const isEnabled = true;
+    
+    //const isEnabled = true;
 
 
     const getCenteredRandom = () => {
