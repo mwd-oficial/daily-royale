@@ -1,0 +1,17 @@
+{
+  "name": "Daily Royale",
+  "short_name": "DailyRoyale",
+  "description": "",
+  "start_url": ".",
+  "scope": "/",
+  "display": "fullscreen",
+  "background_color": "#000000",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
