@@ -109,7 +109,9 @@ const App: React.FC = () => {
     // Handle phase-based background
     const backgroundStyle = useMemo(() => {
         if (phase === 'landscape') {
-            const imgIndex = Math.floor((count - 21) / 7) % LANDSCAPES.length;
+            const rawIndex = Math.floor((count - 21) / 7);
+            const imgIndex = Math.min(rawIndex, ARENAS.length - 1);
+            //const imgIndex = Math.min(count - 21, ARENAS.length - 1);
             return {
                 backgroundImage: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url(${LANDSCAPES[imgIndex]})`,
                 backgroundSize: 'cover',
@@ -121,12 +123,15 @@ const App: React.FC = () => {
 
     const arenaStyle = useMemo(() => {
         if (phase === 'landscape') {
-            const imgIndex = Math.floor((count - 21) / 7) % ARENAS.length;
-            return ARENAS[imgIndex]
+            const rawIndex = Math.floor((count - 21) / 7);
+            const imgIndex = Math.min(rawIndex, ARENAS.length - 1);
+            //const imgIndex = Math.min(count - 21, ARENAS.length - 1);
+            return ARENAS[imgIndex];
         }
         return '';
     }, [phase, count]);
-    
+
+
     const isEnabled = useMemo(() => {
         if (!lastClickTimestamp) return true;
 
@@ -137,9 +142,8 @@ const App: React.FC = () => {
 
         return now >= targetDate.getTime();
     }, [lastClickTimestamp, now]);
-    
-    //const isEnabled = true;
 
+    //const isEnabled = true;
 
     const getCenteredRandom = () => {
         const min = 0;
@@ -162,13 +166,13 @@ const App: React.FC = () => {
         else newPhase = 'landscape';
 
         // Notifications for landscape change
-        if (newCount >= 21 && (newCount - 21) % 7 === 0) {
-            if (newCount >= 280) setNotificationText('Nova liga alcançada!');
+        if (newCount >= 21 && (newCount - 21) % 7 === 0 && (newCount - 21) < ARENAS.length) {
+            if (ARENAS[newCount - 21].includes("liga")) setNotificationText('Nova liga alcançada!');
+            setShowNotification(true);
+            setTimeout(() => setShowNotification(false), 4000);
             setDiasSeguidosText(`troféus`);
             setIsTrofeu(true);
             setIsArena(true)
-            setShowNotification(true);
-            setTimeout(() => setShowNotification(false), 4000);
         }
 
         // Pick random motivational message
@@ -204,6 +208,7 @@ const App: React.FC = () => {
 
         // Balões usando a fase calculada
         Array.from({ length: 30 }).forEach(() => {
+            //Array.from({ length: 1 }).forEach(() => {
             const spawnDelay = Math.random() * 2000;
 
             setTimeout(() => {
@@ -266,6 +271,7 @@ const App: React.FC = () => {
     };
 
     // Tirar isso depois 
+
     /*
     const requestFullscreen = () => {
         const elem = document.documentElement;
@@ -278,7 +284,6 @@ const App: React.FC = () => {
             (elem as any).msRequestFullscreen();
         }
     };
-
     const btnTelaCheia = () => {
         const btn = document.getElementById('btn-tela-cheia');
         if (btn) btn.style.display = 'none';
@@ -327,7 +332,7 @@ const App: React.FC = () => {
             <main className={`flex flex-col items-center justify-start flex-1 w-full ${!isArena ? 'space-y-10' : 'space-y-2'}`}>
                 <div className="relative group">
                     <div className={`absolute -inset-4 opacity-20 blur-xl transition rounded-full`}></div>
-                    <div className={`relative flex flex-col items-center justify-center backdrop-blur-md rounded-3xl p-12 border shadow-2xl min-w-[300px] transition-colors duration-1000
+                    <div className={`relative flex flex-col items-center justify-center backdrop-blur-md rounded-3xl py-5 border shadow-2xl min-w-[250px] transition-colors duration-1000
                         ${phase === 'monotone' ? 'bg-black/40 border-white/10' : 'bg-white/10 border-white/20'}`}>
                         {isTrofeu && (
                             <img
@@ -336,7 +341,7 @@ const App: React.FC = () => {
                                 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] opacity-50 pointer-events-none select-none"
                             />
                         )}
-                        <span className={`text-9xl font-black font-bungee tabular-nums drop-shadow-2xl transition-all duration-1000 ${phase === 'neon' ? 'text-transparent bg-clip-text bg-gradient-to-t from-cyan-400 to-white' : 'text-white'}`}>
+                        <span className={`text-[90px] font-black font-bungee tabular-nums drop-shadow-2xl transition-all duration-1000 ${phase === 'neon' ? 'text-transparent bg-clip-text bg-gradient-to-t from-cyan-400 to-white' : 'text-white'}`}>
                             {count}
                         </span>
                         <p className="mt-4 text-xl font-bold uppercase tracking-widest text-white z-10">
@@ -348,7 +353,7 @@ const App: React.FC = () => {
                     <img
                         src={arenaStyle}
                         alt="Arena"
-                        className="mt-0 mb-0 w-[200px] pointer-events-none select-none"
+                        className="mt-0 mb-0 max-w-[200px] pointer-events-none select-none"
                     />
                 )}
                 <div className="max-w-md w-full px-4 text-center flex flex-col items-center justify-center space-y-2">
