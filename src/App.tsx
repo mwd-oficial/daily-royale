@@ -1,9 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import {
     MOTIVATIONAL_MESSAGES,
-    MONOTONE_COLORS,
-    NORMAL_COLORS,
-    NEON_COLORS,
     LANDSCAPES,
     ARENAS,
     BALLOON_COLORS
@@ -31,28 +28,11 @@ const App: React.FC = () => {
 
     const [message, setMessage] = useState<string>("Pronto para começar?");
 
-    // Carrega do localStorage ou usa o primeiro monotone
-    const [gradient, setGradient] = useState<string>(() => {
-        const savedGradient = localStorage.getItem('current_gradient');
-        return savedGradient || MONOTONE_COLORS[0];
-    });
-
     const [balloons, setBalloons] = useState<Balloon[]>([]);
     const [now, setNow] = useState<number>(Date.now());
     const [showNotification, setShowNotification] = useState(false);
     const [notificationText, setNotificationText] = useState<string>(() => {
         return localStorage.getItem('notificationText') || 'Nova arena alcançada!';
-    });
-    const [diasSeguidosText, setDiasSeguidosText] = useState<string>(() => {
-        return localStorage.getItem('diasSeguidosText') || 'dias seguidos';
-    });
-    const [isTrofeu, setIsTrofeu] = useState<boolean>(() => {
-        const saved = localStorage.getItem('isTrofeu');
-        return saved === 'true'; // convert string para boolean
-    });
-    const [isArena, setIsArena] = useState<boolean>(() => {
-        const saved = localStorage.getItem('isArena');
-        return saved === 'true'; // convert string para boolean
     });
 
 
@@ -76,61 +56,25 @@ const App: React.FC = () => {
         }
     }, [lastClickTimestamp]);
 
-    // Salva a cor atual no localStorage sempre que mudar
-    useEffect(() => {
-        localStorage.setItem('current_gradient', gradient);
-    }, [gradient]);
-
     useEffect(() => {
         localStorage.setItem('notificationText', notificationText);
     }, [notificationText]);
 
-    useEffect(() => {
-        localStorage.setItem('diasSeguidosText', diasSeguidosText);
-    }, [diasSeguidosText]);
 
-    useEffect(() => {
-        localStorage.setItem('isTrofeu', isTrofeu.toString());
-    }, [isTrofeu]);
+    const backgroundStyle = useMemo(() => {
+        const imgIndex = Math.min(Math.floor(count / 7), LANDSCAPES.length - 1);
 
-    useEffect(() => {
-        localStorage.setItem('isArena', isArena.toString());
-    }, [isArena]);
-
-
-    // Determine current phase
-    const phase = useMemo(() => {
-        if (count <= 6) return 'monotone';
-        if (count <= 13) return 'normal';
-        if (count <= 20) return 'neon';
-        return 'landscape';
+        return {
+            backgroundImage: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url(${LANDSCAPES[imgIndex]})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+        };
     }, [count]);
 
-    // Handle phase-based background
-    const backgroundStyle = useMemo(() => {
-        if (phase === 'landscape') {
-            const rawIndex = Math.floor((count - 21) / 7);
-            const imgIndex = Math.min(rawIndex, ARENAS.length - 1);
-            //const imgIndex = Math.min(count - 21, ARENAS.length - 1);
-            return {
-                backgroundImage: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url(${LANDSCAPES[imgIndex]})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center'
-            };
-        }
-        return {};
-    }, [phase, count]);
-
     const arenaStyle = useMemo(() => {
-        if (phase === 'landscape') {
-            const rawIndex = Math.floor((count - 21) / 7);
-            const imgIndex = Math.min(rawIndex, ARENAS.length - 1);
-            //const imgIndex = Math.min(count - 21, ARENAS.length - 1);
-            return ARENAS[imgIndex];
-        }
-        return '';
-    }, [phase, count]);
-
+        const imgIndex = Math.min(Math.floor(count / 7), ARENAS.length - 1);
+        return ARENAS[imgIndex];
+    }, [count]);
 
     const isEnabled = useMemo(() => {
         if (!lastClickTimestamp) return true;
@@ -138,12 +82,12 @@ const App: React.FC = () => {
         const lastDate = new Date(lastClickTimestamp);
         const targetDate = new Date(lastDate);
         targetDate.setDate(targetDate.getDate() + 1);
-        targetDate.setHours(20, 0, 0, 0);
+        targetDate.setHours(19, 0, 0, 0);
 
         return now >= targetDate.getTime();
     }, [lastClickTimestamp, now]);
 
-    //const isEnabled = true;
+    // const isEnabled = true;
 
     const getCenteredRandom = () => {
         const min = 0;
@@ -151,87 +95,59 @@ const App: React.FC = () => {
         return Math.floor(Math.random() * (max - min + 1)) + min;
     };
 
-    const handleIncrement = useCallback(() => {
-        if (!isEnabled) return;
+    const handleIncrement = useCallback((step: number) => {
+        if (step === -1 && count <= 0) return
 
-        const newCount = count + 1;
+        const newCount = count + step;
         setCount(newCount);
         setLastClickTimestamp(Date.now());
 
-        // Calcular fase atual baseada no newCount
-        let newPhase: 'monotone' | 'normal' | 'neon' | 'landscape';
-        if (newCount <= 6) newPhase = 'monotone';
-        else if (newCount <= 13) newPhase = 'normal';
-        else if (newCount <= 20) newPhase = 'neon';
-        else newPhase = 'landscape';
-
-        // Notifications for landscape change
-        if (newCount >= 21 && (newCount - 21) % 7 === 0 && (newCount - 21) < ARENAS.length) {
-            if (ARENAS[newCount - 21].includes("liga")) setNotificationText('Nova liga alcançada!');
-            setShowNotification(true);
-            setTimeout(() => setShowNotification(false), 4000);
-            setDiasSeguidosText(`troféus`);
-            setIsTrofeu(true);
-            setIsArena(true)
+        // Notificação a cada 7 níveis
+        if (newCount > 0 && newCount % 7 === 0 && newCount < ARENAS.length) {
+            if (ARENAS[newCount].includes("liga")) {
+                setNotificationText('Nova liga alcançada!');
+            }
+            if (step === 1) {
+                setShowNotification(true);
+                setTimeout(() => setShowNotification(false), 4000);
+            }
         }
 
-        // Pick random motivational message
-        setMessage(
-            MOTIVATIONAL_MESSAGES[
-            Math.floor(Math.random() * MOTIVATIONAL_MESSAGES.length)
-            ]
-        );
+        if (step === 1) {
+            // Pick random motivational message 
+            setMessage(MOTIVATIONAL_MESSAGES[Math.floor(Math.random() * MOTIVATIONAL_MESSAGES.length)]);
 
-        // Escolhe gradiente baseado na fase
-        let colorList = MONOTONE_COLORS.slice(1);
-        if (newPhase === 'normal') colorList = NORMAL_COLORS;
-        else if (newPhase === 'neon') colorList = NEON_COLORS;
+            // Confetti padrão
+            confetti({
+                particleCount: 150,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
 
-        let newGradient: string;
-        if (newCount === 0) {
-            newGradient = MONOTONE_COLORS[0];
-        } else {
-            const filteredList = colorList.filter(c => c !== gradient);
-            newGradient = filteredList[
-                Math.floor(Math.random() * filteredList.length)
-            ];
-        }
-        setGradient(newGradient);
+            // Balões
+            Array.from({ length: 30 }).forEach(() => {
+                const spawnDelay = Math.random() * 2000;
 
-        // Confete usando a fase calculada
-        confetti({
-            particleCount: 150,
-            spread: 70,
-            origin: { y: 0.6 },
-            colors: newPhase === 'monotone' ? ['#555', '#999', '#333'] : undefined
-        });
-
-        // Balões usando a fase calculada
-        Array.from({ length: 30 }).forEach(() => {
-            //Array.from({ length: 1 }).forEach(() => {
-            const spawnDelay = Math.random() * 2000;
-
-            setTimeout(() => {
-                const balloon: Balloon = {
-                    id: Date.now() + Math.random(),
-                    left: `${getCenteredRandom()}%`,
-                    color:
-                        newPhase === 'monotone'
-                            ? 'text-gray-400'
-                            : BALLOON_COLORS[
+                setTimeout(() => {
+                    const balloon: Balloon = {
+                        id: Date.now() + Math.random(),
+                        left: `${getCenteredRandom()}%`,
+                        color:
+                            BALLOON_COLORS[
                             Math.floor(Math.random() * BALLOON_COLORS.length)
                             ]
-                };
-                setBalloons(prev => [...prev, balloon]);
+                    };
 
-                const removeDelay = 3500 + Math.random() * 1000;
-                setTimeout(() => {
-                    setBalloons(prev => prev.filter(b => b.id !== balloon.id));
-                }, removeDelay);
-            }, spawnDelay);
-        });
-    }, [isEnabled, count, gradient]);
+                    setBalloons(prev => [...prev, balloon]);
 
+                    const removeDelay = 3500 + Math.random() * 1000;
+                    setTimeout(() => {
+                        setBalloons(prev => prev.filter(b => b.id !== balloon.id));
+                    }, removeDelay);
+                }, spawnDelay);
+            });
+        }
+    }, [isEnabled, count]);
 
     const timer = useRef<number | null>(null);
 
@@ -259,15 +175,11 @@ const App: React.FC = () => {
         setLastClickTimestamp(null);
         setMessage("Começando do zero. Você consegue!");
         setNotificationText('Nova arena alcançada!');
-        setDiasSeguidosText(`dias seguidos`);
-        setIsTrofeu(false);
-        setIsArena(false);
-        setGradient(MONOTONE_COLORS[0]);
     };
 
     const getWaitMessage = () => {
         if (isEnabled || !lastClickTimestamp) return null;
-        return `Disponível amanhã às 20h`;
+        return `Disponível amanhã às 19h`;
     };
 
     // Tirar isso depois 
@@ -294,12 +206,15 @@ const App: React.FC = () => {
     return (
         <div
             style={backgroundStyle}
-            className={`min-h-screen w-full flex flex-col items-center justify-between transition-all duration-1000 
-                ${phase !== 'landscape' ? `bg-gradient-to-br ${gradient}` : ''}
-                ${phase === 'monotone' ? 'brightness-90' : 'grayscale-0'}`}
+            className={'min-h-screen w-full flex flex-col items-center justify-between transition-all duration-1000 '}
         >
             {/* Tirar isso depois */}
             {/*<div id="btn-tela-cheia" onClick={btnTelaCheia}></div>*/}
+
+            <div className="absolute top-2.5 left-2.5 flex flex-col gap-2">
+                <div onClick={() => handleIncrement(1)} className="bg-white/30 text-white w-10 h-10 rounded-full flex items-center justify-center">+</div>
+                <div onClick={() => handleIncrement(-1)} className="bg-white/30 text-white w-10 h-10 rounded-full flex items-center justify-center">-</div>
+            </div>
 
             <div className="fixed inset-0 pointer-events-none overflow-hidden">
                 {balloons.map(balloon => (
@@ -325,39 +240,34 @@ const App: React.FC = () => {
 
             <header className="mt-[15px] mb-[15px] text-center animate-pulse">
                 <h1 className="text-4xl font-black font-bungee drop-shadow-lg tracking-tighter">
-                    {phase === 'monotone' ? 'NUNCA DESISTA!' : phase === 'normal' ? 'FOCO TOTAL!' : 'VIBRAÇÃO MÁXIMA!'}
+                    NUNCA DESISTA!
                 </h1>
             </header>
 
-            <main className={`flex flex-col items-center justify-start flex-1 w-full ${!isArena ? 'space-y-10' : 'space-y-2'}`}>
+            <main className={'flex flex-col items-center justify-start flex-1 w-full space-y-2'}>
                 <div className="relative group">
                     <div className={`absolute -inset-4 opacity-20 blur-xl transition rounded-full`}></div>
-                    <div className={`relative flex flex-col items-center justify-center backdrop-blur-md rounded-3xl py-5 border shadow-2xl min-w-[250px] transition-colors duration-1000
-                        ${phase === 'monotone' ? 'bg-black/40 border-white/10' : 'bg-white/10 border-white/20'}`}>
-                        {isTrofeu && (
-                            <img
-                                src="/assets/trofeu.png"
-                                alt="Troféu"
-                                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] opacity-50 pointer-events-none select-none"
-                            />
-                        )}
-                        <span className={`text-[90px] font-black font-bungee tabular-nums drop-shadow-2xl transition-all duration-1000 ${phase === 'neon' ? 'text-transparent bg-clip-text bg-gradient-to-t from-cyan-400 to-white' : 'text-white'}`}>
+                    <div className={'relative flex flex-col items-center justify-center backdrop-blur-md rounded-3xl py-5 border shadow-2xl min-w-[250px] transition-colors duration-1000 bg-white/10 border-white/20'}>
+                        <img
+                            src="/assets/trofeu.png"
+                            alt="Troféu"
+                            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] opacity-50 pointer-events-none select-none"
+                        />
+                        <span className={'text-[90px] font-black font-bungee tabular-nums drop-shadow-2xl transition-all duration-1000 text-white'}>
                             {count}
                         </span>
                         <p className="mt-4 text-xl font-bold uppercase tracking-widest text-white z-10">
-                            {diasSeguidosText}
+                            troféus
                         </p>
                     </div>
                 </div>
-                {isArena && (
-                    <img
-                        src={arenaStyle}
-                        alt="Arena"
-                        className="mt-0 mb-0 max-w-[200px] pointer-events-none select-none"
-                    />
-                )}
+                <img
+                    src={arenaStyle}
+                    alt="Arena"
+                    className="mt-0 mb-0 max-w-[200px] pointer-events-none select-none"
+                />
                 <div className="max-w-md w-full px-4 text-center flex flex-col items-center justify-center space-y-2">
-                    <p className={`text-2xl font-bold leading-tight drop-shadow-md transition-all duration-500 mb-5 ${phase === 'monotone' ? 'opacity-50' : 'opacity-100'}`}>
+                    <p className={'text-2xl font-bold leading-tight drop-shadow-md transition-all duration-500 mb-5 opacity-100'}>
                         {message}
                     </p>
                     {!isEnabled && (
@@ -368,7 +278,7 @@ const App: React.FC = () => {
                 </div>
 
                 <button
-                    onClick={handleIncrement}
+                    onClick={() => { if (isEnabled) handleIncrement(1) }}
                     disabled={!isEnabled}
                     className={`group relative flex items-center justify-center w-36 h-36 rounded-full shadow-2xl transition-all duration-300 transform font-bungee text-5xl
                         ${isEnabled
@@ -377,7 +287,7 @@ const App: React.FC = () => {
                         }`}
                 >
                     {isEnabled && (
-                        <div className={`absolute -inset-2 rounded-full animate-ping group-active:hidden ${phase === 'neon' ? 'bg-cyan-400/30' : 'bg-white/30'}`}></div>
+                        <div className={'absolute -inset-2 rounded-full animate-ping group-active:hidden bg-white/30'}></div>
                     )}
                     <span>+1</span>
                 </button>

@@ -23,36 +23,6 @@ export const MOTIVATIONAL_MESSAGES = [
     "Você jogou no modo campeão hoje. Continue assim! 🏆"
 ];
 
-export const MONOTONE_COLORS = [
-    'from-neutral-900 to-neutral-800', // cinza escuro
-
-    'from-indigo-950 to-indigo-950',    // azul quase preto
-    'from-purple-950 to-purple-950',    // roxo quase preto
-    'from-rose-950 to-rose-950',        // vermelho quase preto
-    'from-emerald-950 to-emerald-950',  // verde quase preto
-];
-
-export const NORMAL_COLORS = [
-    'from-pink-500 to-rose-500',
-    'from-purple-500 to-indigo-500',
-    'from-cyan-500 to-blue-500',
-    'from-emerald-500 to-teal-500',
-    'from-amber-500 to-orange-500',
-];
-
-export const NEON_COLORS = [
-    'from-pink-500 via-fuchsia-600 to-purple-700',   // rosa → roxo
-    'from-cyan-400 via-blue-500 to-indigo-600',     // azul → ciano
-    'from-lime-400 via-green-500 to-emerald-500',   // verde vibrante
-    'from-rose-500 via-red-500 to-orange-400',      // vermelho → laranja
-    'from-yellow-400 via-amber-500 to-orange-500',  // amarelo → laranja
-    'from-purple-400 via-indigo-500 to-fuchsia-500',// roxo → rosa
-    'from-teal-400 via-cyan-500 to-blue-600',       // teal → azul
-    'from-pink-400 via-red-500 to-orange-500',      // neon quente
-    'from-lime-300 via-green-400 to-emerald-500'    // neon verde
-];
-
-
 export const LANDSCAPES = [
     // --- Arenas de Progressão (0 a 20 + Lendária) ---
   '/assets/bg-arenas/bg-campo-de-treinamento.avif',
