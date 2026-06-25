@@ -1,3 +1,4 @@
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import {
     MOTIVATIONAL_MESSAGES,
     LANDSCAPES,
