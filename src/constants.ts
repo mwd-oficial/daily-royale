@@ -188,14 +188,3 @@ export const ARENAS = [
   '/assets/arenas/liga9.avif',
   '/assets/arenas/liga10.avif',
 ];
-
-export const BALLOON_COLORS = [
-    'text-red-600 drop-shadow-md',
-    'text-blue-600 drop-shadow-md',
-    'text-yellow-500 drop-shadow-md',
-    'text-green-600 drop-shadow-md',
-    'text-purple-600 drop-shadow-md',
-    'text-pink-600 drop-shadow-md'
-];
-
-
