@@ -3,16 +3,13 @@ import {
     MOTIVATIONAL_MESSAGES,
     LANDSCAPES,
     ARENAS,
-    BALLOON_COLORS
 } from './constants';
 
-// For canvas-confetti, we use the global variable from the script tag
-declare const confetti: any;
+// Removidos: BALLOON_COLORS, confetti
 
-interface Balloon {
-    id: number;
-    left: string;
-    color: string;
+interface AppState {
+    count: number;
+    lastResetDate: string | null; // data do último reset (YYYY-MM-DD)
 }
 
 const App: React.FC = () => {
@@ -21,49 +18,68 @@ const App: React.FC = () => {
         return saved ? parseInt(saved, 10) : 0;
     });
 
-    const [lastClickTimestamp, setLastClickTimestamp] = useState<number | null>(() => {
-        const saved = localStorage.getItem('last_click_timestamp');
-        return saved ? parseInt(saved, 10) : null;
+    // Guarda a data do último reset para saber se a meia-noite de hoje já foi contada
+    const [lastResetDate, setLastResetDate] = useState<string | null>(() => {
+        return localStorage.getItem('last_reset_date');
+    });
+
+    // Guarda a data do último incremento automático (YYYY-MM-DD)
+    const [lastAutoIncrementDate, setLastAutoIncrementDate] = useState<string | null>(() => {
+        return localStorage.getItem('last_auto_increment_date');
     });
 
     const [message, setMessage] = useState<string>("Pronto para começar?");
 
-    const [balloons, setBalloons] = useState<Balloon[]>([]);
-    const [now, setNow] = useState<number>(Date.now());
-    const [showNotification, setShowNotification] = useState(false);
-    const [notificationText, setNotificationText] = useState<string>(() => {
-        return localStorage.getItem('notificationText') || 'Nova arena alcançada!';
-    });
-
-
-
-
-    // Update clock every minute
-    useEffect(() => {
-        const timer = setInterval(() => setNow(Date.now()), 1000 * 60);
-        return () => clearInterval(timer);
-    }, []);
-
+    // Persiste o contador
     useEffect(() => {
         localStorage.setItem('task_count', count.toString());
     }, [count]);
 
     useEffect(() => {
-        if (lastClickTimestamp) {
-            localStorage.setItem('last_click_timestamp', lastClickTimestamp.toString());
+        if (lastResetDate) {
+            localStorage.setItem('last_reset_date', lastResetDate);
         } else {
-            localStorage.removeItem('last_click_timestamp');
+            localStorage.removeItem('last_reset_date');
         }
-    }, [lastClickTimestamp]);
+    }, [lastResetDate]);
 
     useEffect(() => {
-        localStorage.setItem('notificationText', notificationText);
-    }, [notificationText]);
+        if (lastAutoIncrementDate) {
+            localStorage.setItem('last_auto_increment_date', lastAutoIncrementDate);
+        } else {
+            localStorage.removeItem('last_auto_increment_date');
+        }
+    }, [lastAutoIncrementDate]);
 
+    // Incremento automático à meia-noite
+    useEffect(() => {
+        const checkMidnight = () => {
+            const now = new Date();
+            const todayStr = now.toISOString().slice(0, 10); // "YYYY-MM-DD"
+
+            // Só incrementa se já passou da meia-noite de hoje
+            // E ainda não incrementou hoje
+            // E o reset não foi feito hoje
+            if (
+                now.getHours() === 0 &&
+                now.getMinutes() === 0 &&
+                lastAutoIncrementDate !== todayStr &&
+                lastResetDate !== todayStr
+            ) {
+                setCount(prev => prev + 1);
+                setLastAutoIncrementDate(todayStr);
+                setMessage(MOTIVATIONAL_MESSAGES[Math.floor(Math.random() * MOTIVATIONAL_MESSAGES.length)]);
+            }
+        };
+
+        // Verifica a cada 30 segundos (cobre a janela de 00:00)
+        const interval = setInterval(checkMidnight, 30 * 1000);
+        checkMidnight(); // roda imediatamente ao montar
+        return () => clearInterval(interval);
+    }, [lastAutoIncrementDate, lastResetDate]);
 
     const backgroundStyle = useMemo(() => {
         const imgIndex = Math.min(Math.floor(count / 7), LANDSCAPES.length - 1);
-
         return {
             backgroundImage: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url(${LANDSCAPES[imgIndex]})`,
             backgroundSize: 'cover',
@@ -76,78 +92,13 @@ const App: React.FC = () => {
         return ARENAS[imgIndex];
     }, [count]);
 
-    const isEnabled = useMemo(() => {
-        if (!lastClickTimestamp) return true;
-
-        const lastDate = new Date(lastClickTimestamp);
-        const targetDate = new Date(lastDate);
-        targetDate.setDate(targetDate.getDate() + 1);
-        targetDate.setHours(19, 0, 0, 0);
-
-        return now >= targetDate.getTime();
-    }, [lastClickTimestamp, now]);
-
-    // const isEnabled = true;
-
-    const getCenteredRandom = () => {
-        const min = 0;
-        const max = 100;
-        return Math.floor(Math.random() * (max - min + 1)) + min;
-    };
-
-    const handleIncrement = useCallback((step: number) => {
-        if (step === -1 && count <= 0) return
-
-        const newCount = count + step;
-        setCount(newCount);
-        setLastClickTimestamp(Date.now());
-
-        // Notificação a cada 7 níveis
-        if (newCount > 0 && newCount % 7 === 0 && newCount < ARENAS.length) {
-            if (ARENAS[newCount].includes("liga")) {
-                setNotificationText('Nova liga alcançada!');
-            }
-            if (step === 1) {
-                setShowNotification(true);
-                setTimeout(() => setShowNotification(false), 4000);
-            }
-        }
-
-        if (step === 1) {
-            // Pick random motivational message 
-            setMessage(MOTIVATIONAL_MESSAGES[Math.floor(Math.random() * MOTIVATIONAL_MESSAGES.length)]);
-
-            // Confetti padrão
-            confetti({
-                particleCount: 150,
-                spread: 70,
-                origin: { y: 0.6 }
-            });
-
-            // Balões
-            Array.from({ length: 30 }).forEach(() => {
-                const spawnDelay = Math.random() * 2000;
-
-                setTimeout(() => {
-                    const balloon: Balloon = {
-                        id: Date.now() + Math.random(),
-                        left: `${getCenteredRandom()}%`,
-                        color:
-                            BALLOON_COLORS[
-                            Math.floor(Math.random() * BALLOON_COLORS.length)
-                            ]
-                    };
-
-                    setBalloons(prev => [...prev, balloon]);
-
-                    const removeDelay = 3500 + Math.random() * 1000;
-                    setTimeout(() => {
-                        setBalloons(prev => prev.filter(b => b.id !== balloon.id));
-                    }, removeDelay);
-                }, spawnDelay);
-            });
-        }
-    }, [isEnabled, count]);
+    // Texto da arena/liga (extraído da URL/nome, sem animação)
+    const arenaLabel = useMemo(() => {
+        const imgIndex = Math.min(Math.floor(count / 7), ARENAS.length - 1);
+        const arena = ARENAS[imgIndex];
+        if (arena.includes("liga")) return "Liga";
+        return "Arena";
+    }, [count]);
 
     const timer = useRef<number | null>(null);
 
@@ -156,7 +107,6 @@ const App: React.FC = () => {
             clearTimeout(timer.current);
             timer.current = null;
         }
-
         timer.current = window.setTimeout(() => {
             handleReset();
             timer.current = null;
@@ -171,73 +121,18 @@ const App: React.FC = () => {
     };
 
     const handleReset = () => {
+        const todayStr = new Date().toISOString().slice(0, 10);
         setCount(0);
-        setLastClickTimestamp(null);
+        setLastResetDate(todayStr);        // marca que resetou hoje
+        setLastAutoIncrementDate(todayStr); // impede incremento na meia-noite de hoje
         setMessage("Começando do zero. Você consegue!");
-        setNotificationText('Nova arena alcançada!');
     };
-
-    const getWaitMessage = () => {
-        if (isEnabled || !lastClickTimestamp) return null;
-        return `Disponível amanhã às 19h`;
-    };
-
-    // Tirar isso depois 
-
-    /*
-    const requestFullscreen = () => {
-        const elem = document.documentElement;
-
-        if (elem.requestFullscreen) {
-            elem.requestFullscreen();
-        } else if ((elem as any).webkitRequestFullscreen) {
-            (elem as any).webkitRequestFullscreen();
-        } else if ((elem as any).msRequestFullscreen) {
-            (elem as any).msRequestFullscreen();
-        }
-    };
-    const btnTelaCheia = () => {
-        const btn = document.getElementById('btn-tela-cheia');
-        if (btn) btn.style.display = 'none';
-        requestFullscreen();
-    };
-    */
 
     return (
         <div
             style={backgroundStyle}
-            className={'min-h-screen w-full flex flex-col items-center justify-between transition-all duration-1000 '}
+            className={'min-h-screen w-full flex flex-col items-center justify-between transition-all duration-1000'}
         >
-            {/* Tirar isso depois */}
-            {/*<div id="btn-tela-cheia" onClick={btnTelaCheia}></div>*/}
-
-            <div className="absolute top-2.5 left-2.5 flex flex-col gap-2">
-                <div onClick={() => handleIncrement(1)} className="bg-white/30 text-white w-10 h-10 rounded-full flex items-center justify-center">+</div>
-                <div onClick={() => handleIncrement(-1)} className="bg-white/30 text-white w-10 h-10 rounded-full flex items-center justify-center">-</div>
-            </div>
-
-            <div className="fixed inset-0 pointer-events-none overflow-hidden">
-                {balloons.map(balloon => (
-                    <div
-                        key={balloon.id}
-                        className={`balloon ${balloon.color}`}
-                        style={{ left: balloon.left }}
-                    >
-                        <svg width="60" height="80" viewBox="0 0 60 80" fill="currentColor">
-                            <path d="M30 0C13.4315 0 0 13.4315 0 30C0 46.5685 13.4315 60 30 60C46.5685 60 60 46.5685 60 30C60 13.4315 46.5685 0 30 0ZM30 55C31.6569 55 33 56.3431 33 58V75C33 76.6569 31.6569 78 30 78C28.3431 78 27 76.6569 27 75V58C27 56.3431 28.3431 55 30 55Z" />
-                        </svg>
-                    </div>
-                ))}
-            </div>
-
-            {showNotification && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-in fade-in duration-500">
-                    <div className="bg-white text-slate-900 px-4 py-2 rounded-lg shadow-md scale-100 animate-bounce max-w-xs w-11/12">
-                        <h2 className="text-xl sm:text-2xl font-bungee text-center">{notificationText}</h2>
-                    </div>
-                </div>
-            )}
-
             <header className="mt-[15px] mb-[15px] text-center animate-pulse">
                 <h1 className="text-4xl font-black font-bungee drop-shadow-lg tracking-tighter">
                     NUNCA DESISTA!
@@ -246,8 +141,7 @@ const App: React.FC = () => {
 
             <main className={'flex flex-col items-center justify-start flex-1 w-full space-y-2'}>
                 <div className="relative group">
-                    <div className={`absolute -inset-4 opacity-20 blur-xl transition rounded-full`}></div>
-                    <div className={'relative flex flex-col items-center justify-center backdrop-blur-md rounded-3xl py-5 border shadow-2xl min-w-[250px] transition-colors duration-1000 bg-white/10 border-white/20'}>
+                    <div className={`relative flex flex-col items-center justify-center backdrop-blur-md rounded-3xl py-5 border shadow-2xl min-w-[250px] transition-colors duration-1000 bg-white/10 border-white/20`}>
                         <img
                             src="/assets/trofeu.png"
                             alt="Troféu"
@@ -261,36 +155,23 @@ const App: React.FC = () => {
                         </p>
                     </div>
                 </div>
+
                 <img
                     src={arenaStyle}
                     alt="Arena"
                     className="mt-0 mb-0 max-w-[200px] pointer-events-none select-none"
                 />
+
+                {/* Label arena/liga sem animação */}
+                <p className="text-sm font-black uppercase tracking-widest text-white/60">
+                    {arenaLabel}
+                </p>
+
                 <div className="max-w-md w-full px-4 text-center flex flex-col items-center justify-center space-y-2">
                     <p className={'text-2xl font-bold leading-tight drop-shadow-md transition-all duration-500 mb-5 opacity-100'}>
                         {message}
                     </p>
-                    {!isEnabled && (
-                        <p className="text-sm font-black uppercase tracking-wide text-white/40 bg-black/20 px-4 py-1.5 rounded-full border border-white/5">
-                            {getWaitMessage()}
-                        </p>
-                    )}
                 </div>
-
-                <button
-                    onClick={() => { if (isEnabled) handleIncrement(1) }}
-                    disabled={!isEnabled}
-                    className={`group relative flex items-center justify-center w-36 h-36 rounded-full shadow-2xl transition-all duration-300 transform font-bungee text-5xl
-                        ${isEnabled
-                            ? 'bg-white text-slate-900 shadow-[0_0_50px_rgba(255,255,255,0.4)] active:scale-90 cursor-pointer'
-                            : 'bg-slate-800 text-slate-500 grayscale opacity-40 cursor-not-allowed scale-95 shadow-none'
-                        }`}
-                >
-                    {isEnabled && (
-                        <div className={'absolute -inset-2 rounded-full animate-ping group-active:hidden bg-white/30'}></div>
-                    )}
-                    <span>+1</span>
-                </button>
             </main>
 
             <button
@@ -298,8 +179,7 @@ const App: React.FC = () => {
                 onMouseUp={cancelHold}
                 onTouchStart={startHold}
                 onTouchEnd={cancelHold}
-                className="text-white/90 text-[10px] font-bold uppercase tracking-widest transition-all py-1.5 px-6 rounded-full border border-white/20 bg-white/30 btn-resetar"
-
+                className="text-white/90 text-[10px] font-bold uppercase tracking-widest transition-all py-1.5 px-6 rounded-full border border-white/20 bg-white/30 btn-resetar mb-4"
             >
                 Resetar Progresso
             </button>
