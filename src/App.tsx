@@ -11,19 +11,18 @@ const App: React.FC = () => {
         return saved ? parseInt(saved, 10) : 0;
     });
 
-    // Guarda a data do último reset para saber se a meia-noite de hoje já foi contada
     const [lastResetDate, setLastResetDate] = useState<string | null>(() => {
         return localStorage.getItem('last_reset_date');
     });
 
-    // Guarda a data do último incremento automático (YYYY-MM-DD)
     const [lastAutoIncrementDate, setLastAutoIncrementDate] = useState<string | null>(() => {
         return localStorage.getItem('last_auto_increment_date');
     });
 
-    const [message, setMessage] = useState<string>("Pronto para começar?");
+    const [message, setMessage] = useState<string>(() => {
+        return MOTIVATIONAL_MESSAGES[Math.floor(Math.random() * MOTIVATIONAL_MESSAGES.length)];
+    });
 
-    // Persiste o contador
     useEffect(() => {
         localStorage.setItem('task_count', count.toString());
     }, [count]);
@@ -44,15 +43,11 @@ const App: React.FC = () => {
         }
     }, [lastAutoIncrementDate]);
 
-    // Incremento automático à meia-noite
     useEffect(() => {
         const checkMidnight = () => {
             const now = new Date();
-            const todayStr = now.toISOString().slice(0, 10); // "YYYY-MM-DD"
+            const todayStr = now.toISOString().slice(0, 10);
 
-            // Só incrementa se já passou da meia-noite de hoje
-            // E ainda não incrementou hoje
-            // E o reset não foi feito hoje
             if (
                 now.getHours() === 0 &&
                 now.getMinutes() === 0 &&
@@ -65,9 +60,8 @@ const App: React.FC = () => {
             }
         };
 
-        // Verifica a cada 30 segundos (cobre a janela de 00:00)
         const interval = setInterval(checkMidnight, 30 * 1000);
-        checkMidnight(); // roda imediatamente ao montar
+        checkMidnight();
         return () => clearInterval(interval);
     }, [lastAutoIncrementDate, lastResetDate]);
 
@@ -85,12 +79,19 @@ const App: React.FC = () => {
         return ARENAS[imgIndex];
     }, [count]);
 
-    // Texto da arena/liga (extraído da URL/nome, sem animação)
     const arenaLabel = useMemo(() => {
         const imgIndex = Math.min(Math.floor(count / 7), ARENAS.length - 1);
         const arena = ARENAS[imgIndex];
-        if (arena.includes("liga")) return "Liga";
-        return "Arena";
+
+        const filename = arena.split('/').pop()?.replace(/\.[^.]+$/, '') ?? '';
+        const slug = filename.startsWith('bg-') ? filename.slice(3) : filename;
+
+        // Separa letra de número (ex: liga1 → liga 1) e converte para Title Case
+        return slug
+            .replace(/([a-z])(\d)/g, '$1 $2')
+            .split('-')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
     }, [count]);
 
     const timer = useRef<number | null>(null);
@@ -116,8 +117,8 @@ const App: React.FC = () => {
     const handleReset = () => {
         const todayStr = new Date().toISOString().slice(0, 10);
         setCount(0);
-        setLastResetDate(todayStr);        // marca que resetou hoje
-        setLastAutoIncrementDate(todayStr); // impede incremento na meia-noite de hoje
+        setLastResetDate(todayStr);
+        setLastAutoIncrementDate(todayStr);
         setMessage("Começando do zero. Você consegue!");
     };
 
@@ -155,7 +156,6 @@ const App: React.FC = () => {
                     className="mt-0 mb-0 max-w-[200px] pointer-events-none select-none"
                 />
 
-                {/* Label arena/liga sem animação */}
                 <p className="text-sm font-black uppercase tracking-widest text-white/60">
                     {arenaLabel}
                 </p>
