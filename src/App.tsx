@@ -1,16 +1,8 @@
-import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import {
     MOTIVATIONAL_MESSAGES,
     LANDSCAPES,
     ARENAS,
 } from './constants';
-
-// Removidos: BALLOON_COLORS, confetti
-
-interface AppState {
-    count: number;
-    lastResetDate: string | null; // data do último reset (YYYY-MM-DD)
-}
 
 const App: React.FC = () => {
     const [count, setCount] = useState<number>(() => {
