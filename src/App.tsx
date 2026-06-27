@@ -43,27 +43,32 @@ const App: React.FC = () => {
         }
     }, [lastAutoIncrementDate]);
 
+    // Incrementa ao abrir o app com base nos dias passados
     useEffect(() => {
-        const checkMidnight = () => {
-            const now = new Date();
-            const todayStr = now.toISOString().slice(0, 10);
+        const todayStr = new Date().toISOString().slice(0, 10);
 
-            if (
-                now.getHours() === 0 &&
-                now.getMinutes() === 0 &&
-                lastAutoIncrementDate !== todayStr &&
-                lastResetDate !== todayStr
-            ) {
-                setCount(prev => prev + 1);
-                setLastAutoIncrementDate(todayStr);
-                setMessage(MOTIVATIONAL_MESSAGES[Math.floor(Math.random() * MOTIVATIONAL_MESSAGES.length)]);
-            }
-        };
+        // Primeiro uso — apenas registra hoje sem incrementar
+        if (lastAutoIncrementDate === null && lastResetDate === null) {
+            setLastAutoIncrementDate(todayStr);
+            return;
+        }
 
-        const interval = setInterval(checkMidnight, 30 * 1000);
-        checkMidnight();
-        return () => clearInterval(interval);
-    }, [lastAutoIncrementDate, lastResetDate]);
+        // Se resetou hoje, não incrementa
+        if (lastResetDate === todayStr) {
+            return;
+        }
+
+        const baseDate = lastAutoIncrementDate ?? lastResetDate!;
+        const diffDays = Math.floor(
+            (new Date(todayStr).getTime() - new Date(baseDate).getTime()) / (1000 * 60 * 60 * 24)
+        );
+
+        if (diffDays > 0) {
+            setCount(prev => prev + diffDays);
+            setLastAutoIncrementDate(todayStr);
+            setMessage(MOTIVATIONAL_MESSAGES[Math.floor(Math.random() * MOTIVATIONAL_MESSAGES.length)]);
+        }
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const backgroundStyle = useMemo(() => {
         const imgIndex = Math.min(Math.floor(count / 7), LANDSCAPES.length - 1);
@@ -86,7 +91,6 @@ const App: React.FC = () => {
         const filename = arena.split('/').pop()?.replace(/\.[^.]+$/, '') ?? '';
         const slug = filename.startsWith('bg-') ? filename.slice(3) : filename;
 
-        // Separa letra de número (ex: liga1 → liga 1) e converte para Title Case
         return slug
             .replace(/([a-z])(\d)/g, '$1 $2')
             .split('-')
