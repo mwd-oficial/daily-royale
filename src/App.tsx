@@ -53,12 +53,14 @@ const App: React.FC = () => {
             return;
         }
 
-        // Se resetou hoje, não incrementa
-        if (lastResetDate === todayStr) {
+        // Usa sempre lastAutoIncrementDate como base (já é setado no reset também)
+        const baseDate = lastAutoIncrementDate ?? lastResetDate!;
+
+        // Não incrementa se já foi incrementado hoje
+        if (baseDate >= todayStr) {
             return;
         }
 
-        const baseDate = lastAutoIncrementDate ?? lastResetDate!;
         const diffDays = Math.floor(
             (new Date(todayStr).getTime() - new Date(baseDate).getTime()) / (1000 * 60 * 60 * 24)
         );
