@@ -53,7 +53,6 @@ const App: React.FC = () => {
             return;
         }
 
-        // Usa sempre lastAutoIncrementDate como base (já é setado no reset também)
         const baseDate = lastAutoIncrementDate ?? lastResetDate!;
 
         // Não incrementa se já foi incrementado hoje
@@ -64,11 +63,17 @@ const App: React.FC = () => {
         const diffDays = Math.floor(
             (new Date(todayStr).getTime() - new Date(baseDate).getTime()) / (1000 * 60 * 60 * 24)
         );
+ 
+        // Subtrai 1: o dia imediatamente após o reset/último incremento é de graça
+        const daysToAdd = diffDays - 1;
 
-        if (diffDays > 0) {
-            setCount(prev => prev + diffDays);
+        if (daysToAdd > 0) {
+            setCount(prev => prev + daysToAdd);
             setLastAutoIncrementDate(todayStr);
             setMessage(MOTIVATIONAL_MESSAGES[Math.floor(Math.random() * MOTIVATIONAL_MESSAGES.length)]);
+        } else {
+            // Atualiza a base mesmo sem incrementar, para não reprocessar amanhã incorretamente
+            setLastAutoIncrementDate(todayStr);
         }
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
