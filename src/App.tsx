@@ -11,12 +11,15 @@ const App: React.FC = () => {
         return saved ? parseInt(saved, 10) : 0;
     });
 
-    const [lastResetDate, setLastResetDate] = useState<string | null>(() => {
-        return localStorage.getItem('last_reset_date');
+    // Última data em que o app checou/processou a passagem de dias
+    const [lastCheckedDate, setLastCheckedDate] = useState<string | null>(() => {
+        return localStorage.getItem('last_checked_date');
     });
 
-    const [lastAutoIncrementDate, setLastAutoIncrementDate] = useState<string | null>(() => {
-        return localStorage.getItem('last_auto_increment_date');
+    // Indica se o PRÓXIMO incremento de meia-noite deve ser pulado
+    // (fica true logo após um reset, e é consumido uma única vez)
+    const [skipNextIncrement, setSkipNextIncrement] = useState<boolean>(() => {
+        return localStorage.getItem('skip_next_increment') === 'true';
     });
 
     const [message, setMessage] = useState<string>(() => {
@@ -28,53 +31,50 @@ const App: React.FC = () => {
     }, [count]);
 
     useEffect(() => {
-        if (lastResetDate) {
-            localStorage.setItem('last_reset_date', lastResetDate);
+        if (lastCheckedDate) {
+            localStorage.setItem('last_checked_date', lastCheckedDate);
         } else {
-            localStorage.removeItem('last_reset_date');
+            localStorage.removeItem('last_checked_date');
         }
-    }, [lastResetDate]);
+    }, [lastCheckedDate]);
 
     useEffect(() => {
-        if (lastAutoIncrementDate) {
-            localStorage.setItem('last_auto_increment_date', lastAutoIncrementDate);
-        } else {
-            localStorage.removeItem('last_auto_increment_date');
-        }
-    }, [lastAutoIncrementDate]);
+        localStorage.setItem('skip_next_increment', skipNextIncrement ? 'true' : 'false');
+    }, [skipNextIncrement]);
 
     // Incrementa ao abrir o app com base nos dias passados
     useEffect(() => {
         const todayStr = new Date().toISOString().slice(0, 10);
 
         // Primeiro uso — apenas registra hoje sem incrementar
-        if (lastAutoIncrementDate === null && lastResetDate === null) {
-            setLastAutoIncrementDate(todayStr);
+        if (lastCheckedDate === null) {
+            setLastCheckedDate(todayStr);
             return;
         }
 
-        const baseDate = lastAutoIncrementDate ?? lastResetDate!;
-
-        // Não incrementa se já foi incrementado hoje
-        if (baseDate >= todayStr) {
+        // Já processado hoje, nada a fazer
+        if (lastCheckedDate >= todayStr) {
             return;
         }
 
         const diffDays = Math.floor(
-            (new Date(todayStr).getTime() - new Date(baseDate).getTime()) / (1000 * 60 * 60 * 24)
+            (new Date(todayStr).getTime() - new Date(lastCheckedDate).getTime()) / (1000 * 60 * 60 * 24)
         );
- 
-        // Subtrai 1: o dia imediatamente após o reset/último incremento é de graça
-        const daysToAdd = diffDays - 1;
+
+        let daysToAdd = diffDays;
+
+        // Se há um incremento pendente de ser pulado (pós-reset), desconta 1 e consome o flag
+        if (skipNextIncrement) {
+            daysToAdd -= 1;
+            setSkipNextIncrement(false);
+        }
 
         if (daysToAdd > 0) {
             setCount(prev => prev + daysToAdd);
-            setLastAutoIncrementDate(todayStr);
             setMessage(MOTIVATIONAL_MESSAGES[Math.floor(Math.random() * MOTIVATIONAL_MESSAGES.length)]);
-        } else {
-            // Atualiza a base mesmo sem incrementar, para não reprocessar amanhã incorretamente
-            setLastAutoIncrementDate(todayStr);
         }
+
+        setLastCheckedDate(todayStr);
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const backgroundStyle = useMemo(() => {
@@ -128,8 +128,8 @@ const App: React.FC = () => {
     const handleReset = () => {
         const todayStr = new Date().toISOString().slice(0, 10);
         setCount(0);
-        setLastResetDate(todayStr);
-        setLastAutoIncrementDate(todayStr);
+        setLastCheckedDate(todayStr);
+        setSkipNextIncrement(true); // a próxima virada de meia-noite não deve incrementar
         setMessage("Começando do zero. Você consegue!");
     };
 
